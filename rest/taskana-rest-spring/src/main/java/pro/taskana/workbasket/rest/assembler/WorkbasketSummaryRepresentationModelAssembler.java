@@ -64,6 +64,7 @@ public class WorkbasketSummaryRepresentationModelAssembler implements
                        list -> new TaskanaPagedModel<>(WORKBASKETS, list, pageMetadata)));
   }
 
+  @PageLinks(Mapping.URL_WORKBASKET_ID_DISTRIBUTION)
   public TaskanaPagedModel<WorkbasketSummaryRepresentationModel> toDistributionTargetPageModel(
       List<WorkbasketSummary> workbasketSummaries, PageMetadata pageMetadata) {
     return workbasketSummaries.stream()

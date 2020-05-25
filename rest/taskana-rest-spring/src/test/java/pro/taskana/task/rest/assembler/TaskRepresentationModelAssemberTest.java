@@ -68,7 +68,7 @@ class TaskRepresentationModelAssemberTest {
     TaskRepresentationModel resource = new TaskRepresentationModel();
     resource.setTaskId("taskId");
     resource.setExternalId("externalId");
-    resource.setCreated("2019-09-13T08:44:17.588Z");
+    resource.setCreated(Instant.parse("2019-09-13T08:44:17.588Z"));
     resource.setClaimed("2019-09-13T08:44:17.588Z");
     resource.setCompleted("2019-09-13T08:44:17.588Z");
     resource.setModified("2019-09-13T08:44:17.588Z");

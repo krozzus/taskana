@@ -77,9 +77,7 @@ public class TaskRepresentationModelAssembler
     task.setId(resource.getTaskId());
     task.setExternalId(resource.getExternalId());
     BeanUtils.copyProperties(resource, task);
-    if (resource.getCreated() != null) {
-      task.setCreated(Instant.parse(resource.getCreated()));
-    }
+
     if (resource.getModified() != null) {
       task.setModified(Instant.parse(resource.getModified()));
     }

@@ -1,5 +1,6 @@
 package pro.taskana.task.rest.models;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,7 +22,7 @@ public class TaskSummaryRepresentationModel
 
   protected String taskId;
   protected String externalId;
-  protected String created; // ISO-8601
+  protected Instant created; // ISO-8601
   protected String claimed; // ISO-8601
   protected String completed; // ISO-8601
   protected String modified; // ISO-8601
@@ -66,7 +67,7 @@ public class TaskSummaryRepresentationModel
   public TaskSummaryRepresentationModel(TaskSummary taskSummary) throws InvalidArgumentException {
     this.taskId = taskSummary.getId();
     this.externalId = taskSummary.getExternalId();
-    created = taskSummary.getCreated() != null ? taskSummary.getCreated().toString() : null;
+    created = taskSummary.getCreated();
     claimed = taskSummary.getClaimed() != null ? taskSummary.getClaimed().toString() : null;
     completed = taskSummary.getCompleted() != null ? taskSummary.getCompleted().toString() : null;
     modified = taskSummary.getModified() != null ? taskSummary.getModified().toString() : null;
@@ -126,11 +127,11 @@ public class TaskSummaryRepresentationModel
     this.externalId = externalId;
   }
 
-  public String getCreated() {
+  public Instant getCreated() {
     return created;
   }
 
-  public void setCreated(String created) {
+  public void setCreated(Instant created) {
     this.created = created;
   }
 
