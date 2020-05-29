@@ -2,7 +2,6 @@ package pro.taskana.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,7 +59,6 @@ class AsyncUpdateJobIntTest {
 
     // 1st step: get old classification :
     final Instant before = Instant.now();
-    final ObjectMapper mapper = new ObjectMapper();
 
     ResponseEntity<ClassificationRepresentationModel> response =
         template.exchange(
@@ -78,9 +76,9 @@ class AsyncUpdateJobIntTest {
     classification.setServiceLevel("P5D");
     classification.setPriority(1000);
 
-    template.put(
-        restHelper.toUrl(Mapping.URL_CLASSIFICATIONS_ID, CLASSIFICATION_ID),
-        new HttpEntity<>(mapper.writeValueAsString(classification), restHelper.getHeaders()));
+    template.exchange(restHelper.toUrl(Mapping.URL_CLASSIFICATIONS_ID, CLASSIFICATION_ID),
+        HttpMethod.PUT, new HttpEntity<>(classification, restHelper.getHeaders()),
+        ParameterizedTypeReference.forType(ClassificationRepresentationModel.class));
 
     // trigger jobs twice to refresh all entries. first entry on the first call and follow up on the
     // seconds call

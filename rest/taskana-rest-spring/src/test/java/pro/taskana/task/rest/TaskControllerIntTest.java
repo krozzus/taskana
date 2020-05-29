@@ -4,13 +4,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -40,6 +35,7 @@ import pro.taskana.common.rest.models.TaskanaPagedModel;
 import pro.taskana.sampledata.SampleDataGenerator;
 import pro.taskana.task.api.TaskState;
 import pro.taskana.task.api.models.ObjectReference;
+import pro.taskana.task.internal.TaskServiceImpl;
 import pro.taskana.task.rest.models.TaskRepresentationModel;
 import pro.taskana.task.rest.models.TaskSummaryRepresentationModel;
 import pro.taskana.workbasket.rest.models.WorkbasketSummaryRepresentationModel;
@@ -50,15 +46,21 @@ class TaskControllerIntTest {
 
   private static final ParameterizedTypeReference<TaskanaPagedModel<TaskSummaryRepresentationModel>>
       TASK_SUMMARY_PAGE_MODEL_TYPE =
-          new ParameterizedTypeReference<TaskanaPagedModel<TaskSummaryRepresentationModel>>() {};
+      new ParameterizedTypeReference<TaskanaPagedModel<TaskSummaryRepresentationModel>>() {
+      };
   private static RestTemplate template;
-
+  private final TaskServiceImpl taskService;
   @Value("${taskana.schemaName:TASKANA}")
   public String schemaName;
+  @Autowired
+  RestHelper restHelper;
+  @Autowired
+  private DataSource dataSource;
 
-  @Autowired RestHelper restHelper;
-
-  @Autowired private DataSource dataSource;
+  @Autowired
+  TaskControllerIntTest(TaskServiceImpl taskService) {
+    this.taskService = taskService;
+  }
 
   @BeforeAll
   static void init() {
@@ -565,83 +567,44 @@ class TaskControllerIntTest {
   }
 
   @Test
-  void testGetTaskWithAttachments() throws IOException {
-    final URL url =
-        new URL(restHelper.toUrl("/api/v1/tasks/" + "TKI:000000000000000000000000000000000002"));
-    HttpURLConnection con = (HttpURLConnection) url.openConnection();
-    con.setRequestMethod("GET");
-    con.setRequestProperty("Authorization", "Basic YWRtaW46YWRtaW4=");
-    assertThat(con.getResponseCode()).isEqualTo(200);
-    final ObjectMapper objectMapper = new ObjectMapper();
+  void should_NotGetEmptyAttachmentList_When_GettingTaskWithAttachment() {
+    ResponseEntity<TaskRepresentationModel> response =
+        template.exchange(
+            restHelper.toUrl(Mapping.URL_TASKS_ID,
+                "TKI:000000000000000000000000000000000002"),
+            HttpMethod.GET,
+            new HttpEntity<>(restHelper.getHeadersAdmin()),
+            ParameterizedTypeReference.forType(TaskRepresentationModel.class));
 
-    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream(), UTF_8));
-    String inputLine;
-    StringBuilder content = new StringBuilder();
-    while ((inputLine = in.readLine()) != null) {
-      content.append(inputLine);
-    }
-    in.close();
-    con.disconnect();
-    String response = content.toString();
-    JsonNode jsonNode = objectMapper.readTree(response);
-    String created = jsonNode.get("created").asText();
-    assertThat(response.contains("\"attachments\":[]")).isFalse();
-    assertThat(created.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z")).isTrue();
+    TaskRepresentationModel repModel = response.getBody();
+    assertThat(repModel).isNotNull();
+    assertThat(repModel.getCreated().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z"))
+        .isTrue();
+    assertThat(repModel.getAttachments().isEmpty()).isFalse();
+    assertThat(repModel.getAttachments()).isNotNull();
   }
 
   @Test
-  void testGetAndUpdateTask() throws IOException {
-    URL url = new URL(restHelper.toUrl("/api/v1/tasks/TKI:100000000000000000000000000000000000"));
-    HttpURLConnection con = (HttpURLConnection) url.openConnection();
-    con.setRequestMethod("GET");
-    con.setRequestProperty("Authorization", "Basic dGVhbWxlYWRfMTp0ZWFtbGVhZF8x");
-    assertThat(con.getResponseCode()).isEqualTo(200);
+  void should_ChangeValueOfModified_When_UpdatingTask() throws IOException {
 
-    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream(), UTF_8));
-    String inputLine;
-    StringBuffer content = new StringBuffer();
-    while ((inputLine = in.readLine()) != null) {
-      content.append(inputLine);
-    }
-    in.close();
-    con.disconnect();
-    final String originalTask = content.toString();
+    ResponseEntity<TaskRepresentationModel> responseGet =
+        template.exchange(
+            restHelper.toUrl(Mapping.URL_TASKS_ID, "TKI:100000000000000000000000000000000000"),
+            HttpMethod.GET,
+            new HttpEntity<>(restHelper.getHeaders()),
+            ParameterizedTypeReference.forType(TaskRepresentationModel.class));
 
-    con = (HttpURLConnection) url.openConnection();
-    con.setRequestMethod("PUT");
-    con.setDoOutput(true);
-    con.setRequestProperty("Authorization", "Basic dGVhbWxlYWRfMTp0ZWFtbGVhZF8x");
-    con.setRequestProperty("Content-Type", "application/json");
-    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(con.getOutputStream(), UTF_8));
-    out.write(content.toString());
-    out.flush();
-    out.close();
-    assertThat(con.getResponseCode()).isEqualTo(200);
+    final TaskRepresentationModel originalTask = responseGet.getBody();
 
-    con.disconnect();
+    ResponseEntity<TaskRepresentationModel> responseUpdate =
+        template.exchange(
+            restHelper.toUrl(Mapping.URL_TASKS_ID, "TKI:100000000000000000000000000000000000"),
+            HttpMethod.PUT,
+            new HttpEntity<>(originalTask, restHelper.getHeaders()),
+            ParameterizedTypeReference.forType(TaskRepresentationModel.class));
 
-    url = new URL(restHelper.toUrl("/api/v1/tasks/TKI:100000000000000000000000000000000000"));
-    con = (HttpURLConnection) url.openConnection();
-    con.setRequestMethod("GET");
-    con.setRequestProperty("Authorization", "Basic dGVhbWxlYWRfMTp0ZWFtbGVhZF8x");
-    assertThat(con.getResponseCode()).isEqualTo(200);
-
-    in = new BufferedReader(new InputStreamReader(con.getInputStream(), UTF_8));
-    content = new StringBuffer();
-    while ((inputLine = in.readLine()) != null) {
-      content.append(inputLine);
-    }
-    in.close();
-    con.disconnect();
-    String updatedTask = content.toString();
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    TaskRepresentationModel originalTaskObject =
-        mapper.readValue(originalTask, TaskRepresentationModel.class);
-    TaskRepresentationModel updatedTaskObject =
-        mapper.readValue(updatedTask, TaskRepresentationModel.class);
-
-    assertThat(updatedTaskObject.getModified()).isNotEqualTo(originalTaskObject.getModified());
+    TaskRepresentationModel updatedTask = responseUpdate.getBody();
+    assertThat(originalTask.getModified()).isNotEqualTo(updatedTask.getModified());
   }
 
   @Test

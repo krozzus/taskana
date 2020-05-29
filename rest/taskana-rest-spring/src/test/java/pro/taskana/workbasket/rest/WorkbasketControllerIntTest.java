@@ -3,7 +3,6 @@ package pro.taskana.workbasket.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeAll;
@@ -125,8 +124,6 @@ class WorkbasketControllerIntTest {
 
     String workbasketId = "WBI:100000000000000000000000000000000001";
 
-    final ObjectMapper mapper = new ObjectMapper();
-
     ResponseEntity<WorkbasketRepresentationModel> initialWorkbasketResourceRequestResponse =
         template.exchange(
             restHelper.toUrl(Mapping.URL_WORKBASKET_ID, workbasketId),
@@ -150,7 +147,7 @@ class WorkbasketControllerIntTest {
               restHelper.toUrl(Mapping.URL_WORKBASKET_ID, workbasketId),
               HttpMethod.PUT,
               new HttpEntity<>(
-                  mapper.writeValueAsString(workbasketRepresentationModel),
+                  workbasketRepresentationModel,
                   restHelper.getHeaders()),
               ParameterizedTypeReference.forType(WorkbasketRepresentationModel.class));
         };

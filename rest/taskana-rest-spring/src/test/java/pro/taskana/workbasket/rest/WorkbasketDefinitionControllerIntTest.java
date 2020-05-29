@@ -51,7 +51,8 @@ class WorkbasketDefinitionControllerIntTest {
   @Value("${taskana.schemaName:TASKANA}")
   String schemaName;
 
-  ObjectMapper objMapper = new ObjectMapper();
+  @Autowired
+  ObjectMapper objMapper;
 
   @Autowired RestHelper restHelper;
 
